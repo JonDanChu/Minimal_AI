@@ -61,15 +61,18 @@ class MyAI( AI ):
 
 		elif number == 1:
 			# mine is close by?
-
+		
 		else:
-			# it's a mine!!
+			# it's a mine!! (this will account for numbers 1-8)
+			#check for all remaining covered neighbors and add to a set of mines?
+			
 
-		return Action(AI.Action.LEAVE)
+			return Action(AI.Action.LEAVE)
 		########################################################################
 		#							YOUR CODE ENDS							   #
 		########################################################################
 
 	def checkBounds(self, x_val:int, y_val:int) -> bool:
 		return (x_val > 0 and x_val < self.colDimension) and (y_val > 0 and y_val < self.rowDimension)
-			
+
+
