@@ -27,10 +27,11 @@ class MyAI( AI ):
 		########################################################################
 		
 		# Copy of the world
+		# -3 = queued for reveal
 		# -2 = not revealed
 		# -1 = flag
 		# 0/1 = value
-		self.__grid = [[-2 for _ in colDimension] for _ in rowDimension] # what values do these start with
+		self.__grid = [[-2 for _ in range(colDimension)] for _ in range(rowDimension)]
 		self.__colDimension = colDimension
 		self.__rowDimension = rowDimension
 
@@ -66,10 +67,10 @@ class MyAI( AI ):
 
 		# After result of final reveal/move we should leave
 		if self.__numShown == (self.__colDimension * self.__rowDimension - self.__mineTotal):
-			return (AI.ACTION.LEAVE)
+			return Action(AI.Action.LEAVE)
 		
 		# Update the local copy of the grid
-		self.grid[self.__tileX][self.__tileY] = number
+		self.__grid[self.__tileX][self.__tileY] = number
 
 		if number < 1:
 			# For number == 0 or number == -1 (there is a mine here bc flag)
@@ -83,10 +84,11 @@ class MyAI( AI ):
 					continue
 				
 				if self.__grid[new_x][new_y] == -2:
-					self.__revealSet.add(Action(AI.ACTION.UNCOVER, new_x, new_y))
+					self.__grid[new_x][new_y] = -3
+					self.__revealSet.add(Action(AI.Action.UNCOVER, new_x, new_y))
 
 			next_action = self.prepareNext()
-		
+
 			return next_action
 		
 		# Going to start as 1
@@ -99,6 +101,9 @@ class MyAI( AI ):
 		for dx, dy in ADJACENT_NEIGHBORS:
 				new_x = self.__tileX + dx
 				new_y = self.__tileY + dy
+
+				if not self.checkBounds(new_x, new_y):
+					continue
 
 				if self.__grid[new_x][new_y] == 1:
 					num_ones += 1
@@ -116,44 +121,12 @@ class MyAI( AI ):
 			return next_action
 
 		# Else should be able to find the mine
-		mine = ()
+		mine = self.checkDiagonal() or self.checkCorner() or ()
 
-		# # Check for the case
-		# # X	1
-		# # 1	M
-		# # X	1
-		# if self.checkDiagonal(1):
-		# 	self.__revealSet.add(Action(AI.ACTION.FLAG, self.__tileX + 1, self.__tileY))
-		# 	m = (self.__tileX + 1, self.__tileY)
-		
-		# # Check for the case
-		# # 1	X
-		# # M	1
-		# # 1	X
-		# elif self.checkDiagonal(-1):
-		# 	self.__revealSet.add(Action(AI.ACTION.FLAG, self.__tileX - 1, self.__tileY))
-		# 	m = (self.__tileX - 1, self.__tileY)
+		# Can't make a solid decision — don't add anything, pop from existing set
+		if not mine:
+			return self.prepareNext()
 
-		if not self.checkDiagonal():
-			print("Diagonal Case: Fail")
-		else:
-			print("Diagonal Case: Pass")
-		
-		# figure out a for loop to loop through all combos of (±1, ±1)
-		# elif self.checkCorner(1,1):
-		# 	self.__revealSet.add(Action(AI.ACTION.FLAG, self.__tileX + 1, self.__tileY - 1))
-		# elif self.checkCorner(1, -1):
-		# 	self.__revealSet.add(Action(AI.ACTION.FLAG, self.__tileX + 1, self.__tileY - 1))
-		# elif self.checkCorner(-1,1):
-		# 	self.__revealSet.add(Action(AI.ACTION.FLAG, self.__tileX - 1, self.__tileY + 1))
-		# elif self.checkCorner(-1, -1):
-		# 	self.__revealSet.add(Action(AI.ACTION.FLAG, self.__tileX - 1, self.__tileY - 1))
-		
-		if not self.checkCorner():
-			print("Corner Case: Fail")
-		else:
-			print("Corner Case: Pass")
-		
 		for dx, dy in ADJACENT_NEIGHBORS:
 				new_x = self.__tileX + dx
 				new_y = self.__tileY + dy
@@ -165,7 +138,8 @@ class MyAI( AI ):
 					continue
 				
 				if self.__grid[new_x][new_y] == -2:
-					self.__revealSet.add(Action(AI.ACTION.UNCOVER, new_x, new_y))
+					self.__grid[new_x][new_y] = -3
+					self.__revealSet.add(Action(AI.Action.UNCOVER, new_x, new_y))
 
 		next_action = self.prepareNext()
 		
@@ -181,11 +155,9 @@ class MyAI( AI ):
 		##
 
 		try:
-			next_action = self.actionSet.pop()
+			next_action = self.__revealSet.pop()
 		except KeyError:
-			# if the set was empty
-			print("Actionset was empty")
-			return Action(AI.ACTION.LEAVE)
+			return Action(AI.Action.LEAVE)
 	
 		self.__tileX = next_action.getX()
 		self.__tileY = next_action.getY()
@@ -198,7 +170,10 @@ class MyAI( AI ):
 		return next_action
 
 	def checkBounds(self, x_val:int, y_val:int) -> bool:
-		return (x_val > 0 and x_val < self.colDimension) and (y_val > 0 and y_val < self.rowDimension)
+		return (x_val >= 0 and x_val < self.__colDimension) and (y_val >= 0 and y_val < self.__rowDimension)
+
+	def checkStraights(self) -> bool:
+		return False
 	
 
 	#########
@@ -211,24 +186,31 @@ class MyAI( AI ):
 	# X	1		1	X
 	# 1	M		M	1
 	# X	1	and 1	X
-	def checkDiagonal(self) -> bool:
-		# check for out of bounds!!
+	def checkDiagonal(self):
 		for dir in [-1, 1]:
 			upper = (self.__tileX + dir, self.__tileY - 1)
 			lower = (self.__tileX + dir, self.__tileY + 1)
-			
+
 			if (not self.checkBounds(upper[0], upper[1])) or (not self.checkBounds(lower[0], lower[1])):
-						return False
-			
-			return (self.__grid[upper[0]][upper[1]] == 1) and (self.__grid[lower[0]][lower[1]] == 1)
+				continue
+
+			if (self.__grid[upper[0]][upper[1]] == 1) and (self.__grid[lower[0]][lower[1]] == 1):
+				mine_coord = (self.__tileX + dir, self.__tileY)
+				self.__revealSet.add(Action(AI.Action.FLAG, mine_coord[0], mine_coord[1]))
+				return mine_coord
+
+		return None
 	
-	def checkCorner(self) -> bool:
+	def checkCorner(self):
 		for dx, dy in CORNER_NEIGHBORS:
 			new_x = self.__tileX + dx
 			new_y = self.__tileY + dy
 
+			if not self.checkBounds(new_x, new_y):
+				continue
+
 			if (self.__grid[new_x][self.__tileY] == 1) and (self.__grid[self.__tileX][new_y] == 1):
-				self.__revealSet.add(Action(AI.ACTION.FLAG, new_x, new_y))
-				return True
-		
-		return False
+				self.__revealSet.add(Action(AI.Action.FLAG, new_x, new_y))
+				return (new_x, new_y)
+
+		return None
