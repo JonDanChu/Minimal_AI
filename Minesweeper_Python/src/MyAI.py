@@ -94,9 +94,6 @@ class MyAI( AI ):
 		# Going to start as 1
 		num_ones = number
 
-		# Neighbors w a 1
-		neighborhood = []
-
 		# Check how many neighbors are revealed && have a value of 1
 		for dx, dy in ADJACENT_NEIGHBORS:
 				new_x = self.__tileX + dx
@@ -107,7 +104,6 @@ class MyAI( AI ):
 
 				if self.__grid[new_x][new_y] == 1:
 					num_ones += 1
-					neighborhood.append((new_x, new_y))
 
 		# If 1 or 2 number 1's don't do anything
 		#	We can't make any solid decision on where the mine is yet so don't reveal anything yet
