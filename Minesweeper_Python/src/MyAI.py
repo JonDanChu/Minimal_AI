@@ -137,7 +137,7 @@ class MyAI( AI ):
 	def inBounds(self, coord:tuple) -> bool:
 		x_val = coord[0]
 		y_val = coord[1]
-		return (x_val > 0 and x_val < self.colDimension) and (y_val > 0 and y_val < self.rowDimension)
+		return (x_val >= 0 and x_val < self.__colDimension) and (y_val >= 0 and y_val < self.__rowDimension)
 
 	# def checkStraights(self) -> bool:
 	# 	upper = (self.__tileX, self.__tileY - 1)
