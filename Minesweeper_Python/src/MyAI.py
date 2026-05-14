@@ -115,7 +115,7 @@ class MyAI( AI ):
 		#  		-	Don't add anything to the set
 		# 		-	Pop off from what's already in the set
 
-		if (num_ones == 3) and self.checkStraights():
+		if (num_ones < 3) or ((num_ones == 3) and self.checkStraights()):
 			next_action = self.prepareNext()
 			
 			return next_action
@@ -173,6 +173,18 @@ class MyAI( AI ):
 		return (x_val >= 0 and x_val < self.__colDimension) and (y_val >= 0 and y_val < self.__rowDimension)
 
 	def checkStraights(self) -> bool:
+		upper = (self.__tileX, self.__tileY - 1)
+		lower = (self.__tileX, self.__tileY + 1)
+
+		if (self.checkBounds(upper[0], upper[1])) or (self.checkBounds(lower[0], lower[1])):
+			return (self.__grid[upper[0]][upper[1]] == 1) and (self.__grid[lower[0]][lower[1]] == 1)
+
+		left = (self.__tileX - 1, self.__tileY)
+		right = (self.__tileX + 1, self.__tileY)
+
+		if (self.checkBounds(left[0], left[1])) or (self.checkBounds(right[0], right[1])):
+			return (self.__grid[left[0]][left[1]] == 1) and (self.__grid[right[0]][right[1]] == 1)
+
 		return False
 	
 
