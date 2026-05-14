@@ -27,10 +27,11 @@ class MyAI( AI ):
 		########################################################################
 		
 		# Copy of the world
+		# -3 = queued for reveal
 		# -2 = not revealed
 		# -1 = flag
 		# 0/1 = value
-		self.__grid = [[-2 for _ in colDimension] for _ in rowDimension] # what values do these start with
+		self.__grid = [[-2 for _ in range(colDimension)] for _ in range(rowDimension)]
 		self.__colDimension = colDimension
 		self.__rowDimension = rowDimension
 
@@ -66,10 +67,10 @@ class MyAI( AI ):
 
 		# After result of final reveal/move we should leave
 		if self.__numShown == (self.__colDimension * self.__rowDimension - self.__mineTotal):
-			return (AI.ACTION.LEAVE)
+			return Action(AI.Action.LEAVE)
 		
 		# Update the local copy of the grid
-		self.grid[self.__tileX][self.__tileY] = number
+		self.__grid[self.__tileX][self.__tileY] = number
 
 		if number < 1:
 			# For number == 0 or number == -1 (there is a mine here bc flag)
@@ -83,10 +84,11 @@ class MyAI( AI ):
 					continue
 				
 				if self.__grid[new_x][new_y] == -2:
-					self.__revealSet.add(Action(AI.ACTION.UNCOVER, new_x, new_y))
+					self.__grid[new_x][new_y] = -3
+					self.__revealSet.add(Action(AI.Action.UNCOVER, new_x, new_y))
 
 			next_action = self.prepareNext()
-		
+
 			return next_action
 		
 		# Going to start as 1
@@ -100,6 +102,9 @@ class MyAI( AI ):
 				new_x = self.__tileX + dx
 				new_y = self.__tileY + dy
 
+				if not self.checkBounds(new_x, new_y):
+					continue
+
 				if self.__grid[new_x][new_y] == 1:
 					num_ones += 1
 					neighborhood.append((new_x, new_y))
@@ -110,37 +115,18 @@ class MyAI( AI ):
 		#  		-	Don't add anything to the set
 		# 		-	Pop off from what's already in the set
 
-		# Does ^ need a prepare too?
-		
 		if (num_ones < 3) or ((num_ones == 3) and self.checkStraights()):
 			next_action = self.prepareNext()
 			
 			return next_action
 
 		# Else should be able to find the mine
-		mine = ()
+		mine = self.checkDiagonal() or self.checkCorner() or ()
 
-		mine = self.checkDiagonal()
+		# Can't make a solid decision — don't add anything, pop from existing set
+		if not mine:
+			return self.prepareNext()
 
-		if mine:
-			print("Diagonal Case: Pass")
-		else:
-			print("Diagonal Case: Fail")
-
-			# Test corners instead then
-			
-			mine = self.checkCorner()
-
-			if mine:
-				print("Corner Case: Pass")
-			else:
-				# what to do if both fail?
-				
-				print("Corner Case: Fail")
-
-				next_action = self.prepareNext()
-				return next_action
-		
 		for dx, dy in ADJACENT_NEIGHBORS:
 				new_x = self.__tileX + dx
 				new_y = self.__tileY + dy
@@ -152,7 +138,8 @@ class MyAI( AI ):
 					continue
 				
 				if self.__grid[new_x][new_y] == -2:
-					self.__revealSet.add(Action(AI.ACTION.UNCOVER, new_x, new_y))
+					self.__grid[new_x][new_y] = -3
+					self.__revealSet.add(Action(AI.Action.UNCOVER, new_x, new_y))
 
 		next_action = self.prepareNext()
 		return next_action
@@ -167,11 +154,9 @@ class MyAI( AI ):
 		##
 
 		try:
-			next_action = self.actionSet.pop()
+			next_action = self.__revealSet.pop()
 		except KeyError:
-			# if the set was empty
-			print("Actionset was empty")
-			return Action(AI.ACTION.LEAVE)
+			return Action(AI.Action.LEAVE)
 	
 		self.__tileX = next_action.getX()
 		self.__tileY = next_action.getY()
@@ -187,7 +172,21 @@ class MyAI( AI ):
 		x_val = coord[0]
 		y_val = coord[1]
 		return (x_val > 0 and x_val < self.colDimension) and (y_val > 0 and y_val < self.rowDimension)
-	
+
+	def checkStraights(self) -> bool:
+		upper = (self.__tileX, self.__tileY - 1)
+		lower = (self.__tileX, self.__tileY + 1)
+
+		if (self.checkBounds(upper[0], upper[1])) or (self.checkBounds(lower[0], lower[1])):
+			return (self.__grid[upper[0]][upper[1]] == 1) and (self.__grid[lower[0]][lower[1]] == 1)
+
+		left = (self.__tileX - 1, self.__tileY)
+		right = (self.__tileX + 1, self.__tileY)
+
+		if (self.checkBounds(left[0], left[1])) or (self.checkBounds(right[0], right[1])):
+			return (self.__grid[left[0]][left[1]] == 1) and (self.__grid[right[0]][right[1]] == 1)
+
+		return False	
 
 	#########
 	# For 16 special cases
