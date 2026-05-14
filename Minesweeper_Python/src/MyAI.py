@@ -91,8 +91,7 @@ class MyAI( AI ):
 
 			return next_action
 		
-		# Going to start as 1
-		num_ones = number
+		neighbors = []
 
 		# Check how many neighbors are revealed && have a value of 1
 		for dx, dy in ADJACENT_NEIGHBORS:
@@ -102,40 +101,11 @@ class MyAI( AI ):
 				if not self.checkBounds(new_x, new_y):
 					continue
 
-				if self.__grid[new_x][new_y] == 1:
-					num_ones += 1
-
-		# If 1 or 2 number 1's don't do anything
-		#	We can't make any solid decision on where the mine is yet so don't reveal anything yet
-		#	Instead:
-		#  		-	Don't add anything to the set
-		# 		-	Pop off from what's already in the set
-
-		if (num_ones < 3) or ((num_ones == 3) and self.checkStraights()):
-			next_action = self.prepareNext()
-			
-			return next_action
-
-		# Else should be able to find the mine
-		mine = self.checkDiagonal() or self.checkCorner() or ()
-
-		# Can't make a solid decision — don't add anything, pop from existing set
-		if not mine:
-			return self.prepareNext()
-
-		for dx, dy in ADJACENT_NEIGHBORS:
-				new_x = self.__tileX + dx
-				new_y = self.__tileY + dy
-
-				if (new_x, new_y) == mine:
-					continue
-
-				if not self.inBounds((new_x, new_y)):
-					continue
-				
 				if self.__grid[new_x][new_y] == -2:
-					self.__grid[new_x][new_y] = -3
-					self.__revealSet.add(Action(AI.Action.UNCOVER, new_x, new_y))
+					neighbors.add((new_x, new_y))
+
+		if len(neighbors) == 1:
+			self.__revealSet.add(Action(AI.ACTION.FLAG, *(neighbors[1][0])))
 
 		next_action = self.prepareNext()
 		return next_action
@@ -169,89 +139,89 @@ class MyAI( AI ):
 		y_val = coord[1]
 		return (x_val > 0 and x_val < self.colDimension) and (y_val > 0 and y_val < self.rowDimension)
 
-	def checkStraights(self) -> bool:
-		upper = (self.__tileX, self.__tileY - 1)
-		lower = (self.__tileX, self.__tileY + 1)
+	# def checkStraights(self) -> bool:
+	# 	upper = (self.__tileX, self.__tileY - 1)
+	# 	lower = (self.__tileX, self.__tileY + 1)
 
-		if (self.checkBounds(upper[0], upper[1])) or (self.checkBounds(lower[0], lower[1])):
-			return (self.__grid[upper[0]][upper[1]] == 1) and (self.__grid[lower[0]][lower[1]] == 1)
+	# 	if (self.checkBounds(upper[0], upper[1])) or (self.checkBounds(lower[0], lower[1])):
+	# 		return (self.__grid[upper[0]][upper[1]] == 1) and (self.__grid[lower[0]][lower[1]] == 1)
 
-		left = (self.__tileX - 1, self.__tileY)
-		right = (self.__tileX + 1, self.__tileY)
+	# 	left = (self.__tileX - 1, self.__tileY)
+	# 	right = (self.__tileX + 1, self.__tileY)
 
-		if (self.checkBounds(left[0], left[1])) or (self.checkBounds(right[0], right[1])):
-			return (self.__grid[left[0]][left[1]] == 1) and (self.__grid[right[0]][right[1]] == 1)
+	# 	if (self.checkBounds(left[0], left[1])) or (self.checkBounds(right[0], right[1])):
+	# 		return (self.__grid[left[0]][left[1]] == 1) and (self.__grid[right[0]][right[1]] == 1)
 
-		return False	
+	# 	return False	
 
-	#########
-	# For 16 special cases
-	##########
+	# #########
+	# # For 16 special cases
+	# ##########
 
-	# Check for the case
-	# 			X	1			1	X
-	# 			1	M			M	1			X	1	X			1	M	1
-	# Case 1:	X	1	Case 2:	1	X   Case 3:	1	M	1	Case 4:	X	1	X
-	def checkDiagonal(self) -> tuple:
-		# check for out of bounds!!
-		for dir in [-1, 1]:
-			upper = (self.__tileX + dir, self.__tileY - 1)
-			lower = (self.__tileX + dir, self.__tileY + 1)
+	# # Check for the case
+	# # 			X	1			1	X
+	# # 			1	M			M	1			X	1	X			1	M	1
+	# # Case 1:	X	1	Case 2:	1	X   Case 3:	1	M	1	Case 4:	X	1	X
+	# def checkDiagonal(self) -> tuple:
+	# 	# check for out of bounds!!
+	# 	for dir in [-1, 1]:
+	# 		upper = (self.__tileX + dir, self.__tileY - 1)
+	# 		lower = (self.__tileX + dir, self.__tileY + 1)
 
-			lhs = (self.__tileX - 1, self.__tileY + dir)
-			rhs = (self.__tileX + 1, self.__tileY + dir)
+	# 		lhs = (self.__tileX - 1, self.__tileY + dir)
+	# 		rhs = (self.__tileX + 1, self.__tileY + dir)
 			
-			# Case 1 and 2
-			if self.inBounds(upper) and self.inBounds(lower):
-				if (self.__grid[upper[0]][upper[1]] == 1) and (self.__grid[lower[0]][lower[1]] == 1):
-					return (self.__tileX + dir, self.__tileY)
+	# 		# Case 1 and 2
+	# 		if self.inBounds(upper) and self.inBounds(lower):
+	# 			if (self.__grid[upper[0]][upper[1]] == 1) and (self.__grid[lower[0]][lower[1]] == 1):
+	# 				return (self.__tileX + dir, self.__tileY)
 			
-			# Case 3 and 4
-			if self.inBounds(lhs) and self.inBounds(rhs):
-				if (self.__grid[lhs[0]][lhs[1]] == 1) and (self.__grid[rhs[0]][rhs[1]] == 1):
-					return (self.__tileX, self.__tileY + dir)
+	# 		# Case 3 and 4
+	# 		if self.inBounds(lhs) and self.inBounds(rhs):
+	# 			if (self.__grid[lhs[0]][lhs[1]] == 1) and (self.__grid[rhs[0]][rhs[1]] == 1):
+	# 				return (self.__tileX, self.__tileY + dir)
 		
-		return ()
+	# 	return ()
 	
-	########################
-	# Check
-	# - Corners
-	# - Vertical Middle
-	# - Horizontal Middle
-	#########################
-	def checkCorner(self) -> tuple:
-		for dx, dy in CORNER_NEIGHBORS:
-			new_x = self.__tileX + dx
-			new_y = self.__tileY + dy
+	# ########################
+	# # Check
+	# # - Corners
+	# # - Vertical Middle
+	# # - Horizontal Middle
+	# #########################
+	# def checkCorner(self) -> tuple:
+	# 	for dx, dy in CORNER_NEIGHBORS:
+	# 		new_x = self.__tileX + dx
+	# 		new_y = self.__tileY + dy
 
-			c_side = (new_x, self.__tileY)
-			c_vert = (self.__tileX, new_y)
-			c_mine = (new_x, new_y)
+	# 		c_side = (new_x, self.__tileY)
+	# 		c_vert = (self.__tileX, new_y)
+	# 		c_mine = (new_x, new_y)
 
-			v_side = (new_x, self.__tileY)
-			v_diag = (new_x, new_y)
-			v_mine = (self.__tileX, new_y)
+	# 		v_side = (new_x, self.__tileY)
+	# 		v_diag = (new_x, new_y)
+	# 		v_mine = (self.__tileX, new_y)
 
-			h_vert = (self.__tileX, new_y)
-			h_diag = (new_x, new_y)
-			h_mine = (new_x, self.__tileY)
+	# 		h_vert = (self.__tileX, new_y)
+	# 		h_diag = (new_x, new_y)
+	# 		h_mine = (new_x, self.__tileY)
 
-			#check for bounds first! See the diagonal check for structure
-			if self.inBounds(c_side) and self.inBounds(c_vert):
-				if (self.__grid[c_side[0]][c_side[1]] == 1) and (self.__grid[c_vert[0]][c_vert[1]] == 1):
-					self.__revealSet.add(Action(AI.ACTION.FLAG, *c_mine))
-					return c_mine
+	# 		#check for bounds first! See the diagonal check for structure
+	# 		if self.inBounds(c_side) and self.inBounds(c_vert):
+	# 			if (self.__grid[c_side[0]][c_side[1]] == 1) and (self.__grid[c_vert[0]][c_vert[1]] == 1):
+	# 				self.__revealSet.add(Action(AI.ACTION.FLAG, *c_mine))
+	# 				return c_mine
 			
-			# Vertical Middle
-			if self.inBounds(v_side) and self.inBounds(v_diag):
-				if (self.__grid[v_side[0]][v_side[1]] == 1) and (self.__grid[v_diag[0]][v_diag[1]] == 1):
-					self.__revealSet.add(Action(AI.ACTION.FLAG, *v_mine))
-					return v_mine
+	# 		# Vertical Middle
+	# 		if self.inBounds(v_side) and self.inBounds(v_diag):
+	# 			if (self.__grid[v_side[0]][v_side[1]] == 1) and (self.__grid[v_diag[0]][v_diag[1]] == 1):
+	# 				self.__revealSet.add(Action(AI.ACTION.FLAG, *v_mine))
+	# 				return v_mine
 			
-			# Horizontal Middle
-			if self.inBounds(h_vert) and self.inBounds(h_diag):
-				if (self.__grid[h_vert[0]][h_vert[1]] == 1) and (self.__grid[h_diag[0]][h_diag[1]] == 1):
-						self.__revealSet.add(Action(AI.ACTION.FLAG, *h_mine))
-						return h_mine
+	# 		# Horizontal Middle
+	# 		if self.inBounds(h_vert) and self.inBounds(h_diag):
+	# 			if (self.__grid[h_vert[0]][h_vert[1]] == 1) and (self.__grid[h_diag[0]][h_diag[1]] == 1):
+	# 					self.__revealSet.add(Action(AI.ACTION.FLAG, *h_mine))
+	# 					return h_mine
 				
-		return ()
+	# 	return ()
